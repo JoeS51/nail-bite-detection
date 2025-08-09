@@ -18,6 +18,9 @@ face_mesh = mp_face_mesh.FaceMesh(
     min_tracking_confidence=0.5
 )
 
+# 4 = thumb, 8 = index, 12 = middle, 16 = ring, 20 = pinky
+fingertip_indices = [4, 8, 12, 16, 20]
+
 cam = cv.VideoCapture(0)
 
 while cam.isOpened():
@@ -35,14 +38,20 @@ while cam.isOpened():
     frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
 
     if hands_detected.multi_hand_landmarks:
+        h, w, _ = frame.shape
         for hand_landmarks in hands_detected.multi_hand_landmarks:
-            drawing.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS,
-                drawing_styles.get_default_hand_landmarks_style(),
-                drawing_styles.get_default_hand_connections_style(),
-            )
+            for finger in fingertip_indices:
+                lm = hand_landmarks.landmark[finger]
+                x, y = int(lm.x * w), int(lm.y * h)
+                cv.circle(frame, (x, y), 5, (0, 255, 0), -1)
+
+            # drawing.draw_landmarks(
+            #     frame,
+            #     hand_landmarks,
+            #     mp_hands.HAND_CONNECTIONS,
+            #     drawing_styles.get_default_hand_landmarks_style(),
+            #     drawing_styles.get_default_hand_connections_style(),
+            # )
 
     if face_detected.multi_face_landmarks:
         for face_landmarks in face_detected.multi_face_landmarks:
