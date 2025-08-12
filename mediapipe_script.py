@@ -5,6 +5,10 @@ import mediapipe.python.solutions.face_mesh as mp_face_mesh
 import mediapipe.python.solutions.drawing_utils as drawing
 import mediapipe.python.solutions.drawing_styles as drawing_styles
 
+import requests
+import time
+BASE_URL = "http://192.168.1.36"
+
 hands = mp_hands.Hands(
     static_image_mode=False,
     max_num_hands=2,
@@ -78,6 +82,13 @@ while cam.isOpened():
 
     if nail_biting:
         cv.putText(frame, "Bro not again...", (30, 40), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        resp = requests.get(f"{BASE_URL}/led/on")
+        print(resp.status_code)
+        print(resp.text)
+        time.sleep(5)
+        resp = requests.get(f"{BASE_URL}/led/off")
+        print(resp.status_code)
+        print(resp.text)
 
     cv.imshow("Show Video", frame)
     if cv.waitKey(20) & 0xff == ord('q'):
