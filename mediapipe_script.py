@@ -7,7 +7,33 @@ import mediapipe.python.solutions.drawing_styles as drawing_styles
 
 import requests
 import time
+import threading
 BASE_URL = "http://192.168.1.36"
+
+# Global variable to track LED state
+led_active = False
+
+def control_led_async():
+    """Control LED asynchronously - turn on, wait 3 seconds, then turn off"""
+    global led_active
+    led_active = True
+    
+    try:
+        # Turn LED on
+        resp = requests.get(f"{BASE_URL}/led/on")
+        print(f"LED ON - Status: {resp.status_code}, Response: {resp.text}")
+        
+        # Wait 3 seconds
+        time.sleep(3)
+        
+        # Turn LED off
+        resp = requests.get(f"{BASE_URL}/led/off")
+        print(f"LED OFF - Status: {resp.status_code}, Response: {resp.text}")
+        
+    except Exception as e:
+        print(f"LED control error: {e}")
+    finally:
+        led_active = False
 
 hands = mp_hands.Hands(
     static_image_mode=False,
@@ -69,7 +95,7 @@ while cam.isOpened():
                 lip_polygon_pts.append((int(lm.x * w), int(lm.y * h)))
 
             if len(lip_polygon_pts) >= 3:
-                cv.polylines(frame, [np.array(lip_polygon_pts, dtype=np.int32)], isClosed=True, color=(0, 255, 0), thickness=1)
+                cv.polylines(frame, [np.array(lip_polygon_pts, dtype=np.int32)], isClosed=True, color=(0, 255, 0), thickness=0)
 
     nail_biting = False
     if lip_polygon_pts and fingertip_points:
@@ -82,13 +108,12 @@ while cam.isOpened():
 
     if nail_biting:
         cv.putText(frame, "Bro not again...", (30, 40), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-        resp = requests.get(f"{BASE_URL}/led/on")
-        print(resp.status_code)
-        print(resp.text)
-        time.sleep(5)
-        resp = requests.get(f"{BASE_URL}/led/off")
-        print(resp.status_code)
-        print(resp.text)
+        
+        # Only start LED control if it's not already active
+        if not led_active:
+            led_thread = threading.Thread(target=control_led_async)
+            led_thread.daemon = True  # Thread will close when main program closes
+            led_thread.start()
 
     cv.imshow("Show Video", frame)
     if cv.waitKey(20) & 0xff == ord('q'):
